@@ -21,17 +21,17 @@ def run(cmd):
         print(e.stdout)
 
 
-def create_certificate_authority(validity):
+def create_certificate_authority(validity, ca_password, ca_server):
     """
     Create your own CA (Certificate Authority). Use openssl to generate a new CA certificate.
     :param validity: CA validity period
     :return:runs the command and returns the subprocess output
     """
-    cmd = "openssl req -new -x509 -keyout ca.key -out ca.csr -days %s" % validity
+    cmd = "openssl req -new -x509 -keyout ca-key -out ca-cert -days %s -passout pass:\"%s\" -subj \"/CN=%s\"" % (validity, ca_password, ca_server)
     run(cmd)
 
 
-def create_private_key(node, validity):
+def create_private_key(node, domain, store_pass, key_pass, validity):
     """
     Generates unique key and the certificate for a machine in the cluster. It stores each machines own identity.
     genkey→ Generates the public & private key pair.
@@ -46,70 +46,81 @@ def create_private_key(node, validity):
     :param validity: key validity period
     :return: runs the command and returns the subprocess output
     """
-    cmd = keytool + " -genkey -keyalg RSA -alias %s -keypass Kpassword -keystore keystore.jks -storepass Spassword -validity %s" % (node, validity)
+    cmd = keytool + " -genkey -keyalg RSA -keystore kafka.server.keystore.jks -storepass \"%s\" -keypass \"%s\" -validity %s -alias %s -dname CN=\"%s.%s\"" \
+          % (store_pass, key_pass, validity, node, node, domain)
     run(cmd)
 
 
-def extract_certificate(node):
+def extract_certificate(store_pass, key_pass, node):
     """
     Exports the certificate from the keystore created in create_private_key function
-    :param node:
+    :param store_pass:
+    :param key_pass:
     :return: runs the command and returns the subprocess output
     """
-    cmd = keytool + " -keystore keystore.jks -storepass Spassword -keypass Kpassword -alias %s -certreq -file %s.csr" % (node, node)
+    cmd = keytool + " -keystore kafka.server.keystore.jks -certreq -file cert-file -storepass \"%s\" -keypass \"%s\" -alias %s " % (store_pass, key_pass, node)
     run(cmd)
 
 
-def create_trust_store():
+def create_trust_store(ts_password):
     """
     Add the generated CA to the clients “truststore” so that the clients can trust this CA.
     :return: runs the command and returns the subprocess output
     """
-    cmd = keytool + " -keystore truststore.jks -storepass Tpassword -alias CARoot -import -file ca.csr"
+    cmd = keytool + " -keystore kafka.server.truststore.jks -storepass \"%s\" -alias CARoot -import -file ca-cert -noprompt" % ts_password
     run(cmd)
 
 
-def sign_with_ca(ca_truststore, node):
+def sign_with_ca(node, ca_pass, validity):
     """
     Signing the extracted certificates with CA
     :param ca_truststore:
     :param node:
     :return: runs the command and returns the subprocess output
     """
-    cmd = "openssl x509 -req -CA %s/ca.csr -CAkey %s/ca.key -in %s/%s.csr -out %s/%s_sgn.csr -days 365 -CAcreateserial -passin pass:Cpassword" \
-          % (ca_truststore, ca_truststore, node, node, node, node)
+    cmd = "openssl x509 -req -CA ca-cert -CAkey ca-key -in %s/cert-file -out %s/cert-signed -days %s -CAcreateserial -passin pass:\"%s\"" \
+          % (node, node, validity, ca_pass)
 
-    print(os.getcwd())
-    print("cmd: " + cmd)
     run(cmd)
 
 
-def import_certificate(ca_truststore, node):
+def import_certificate(node, store_pass, key_pass):
     """
     Imports both the certificate of the CA and the signed certificate into the keystore.
     :param ca_truststore:
     :param node:
     :return: runs the command and returns the subprocess output
     """
-    ca_import = keytool + " -keystore %s/keystore.jks -storepass Spassword -alias CARoot -import -file %s/ca.csr" % (node, ca_truststore)
-    print(os.getcwd())
-    print("cmd: " + ca_import)
+    ca_import = keytool + " -keystore %s/kafka.server.keystore.jks -storepass \"%s\" -keypass \"%s\" -alias CARoot -import -file ca/ca-cert -noprompt" \
+                % (node, store_pass, key_pass)
+
     run(ca_import)
 
-    node_import = keytool + " -keystore %s/keystore.jks -storepass Spassword -keypass Kpassword -alias %s -import -file %s/%s_sgn.csr" % (node, node, node, node)
-    print(os.getcwd())
-    print("cmd: " + node_import)
+    node_import = keytool + " -keystore %s/kafka.server.keystore.jks -storepass \"%s\" -keypass \"%s\" -alias %s -import -file %s/cert-signed -noprompt" \
+                  % (node, store_pass, key_pass, node, node)
+
     run(node_import)
 
 
 if __name__ == '__main__':
     validity = 365
 
-    cluster_name = "ssl_keys"
+    cluster_name = "ssl"
     nodes = input("Enter nodes (comma separated): ")
     nodes = nodes.replace(' ', '').split(',')
+    domain = input("Enter domain (e.g: ekbana.com): ")
+    ca_server = input("Enter CA server (give FQDN of server): ")
 
-    ca_truststore_dir = "../" + cluster_name + "/ca_truststore"
+    # Generate Random Password for CA
+    ca_password = "3y-REbMG=VxF9W^C"
+    # Generate Ramdom Password for TrustStore
+    ts_password = "8h@R7cMGR^$!4HXM"
+    # Generate Ramdom Password for Keystore (store)
+    kss_password = "PXufB3=+7P^Abd@#"
+    # Generate Ramdom Password for Keystore (key)
+    ksk_password = "8zJc7*EtT?KEQCJ*"
+
+    ca_truststore_dir = "../" + cluster_name + "/ca"
 
     if not os.path.exists(ca_truststore_dir):
         print("\n########################### Create a folder to store CA and Truststore ###########################\n")
@@ -125,9 +136,9 @@ if __name__ == '__main__':
     os.chdir(ca_truststore_dir)
 
     print("\n########################### Create Certificate Authority (CA) ###########################\n")
-    create_certificate_authority(validity)
+    create_certificate_authority(validity, ca_password, ca_server)
     print("\n########################### Create Trust Store ###########################\n")
-    create_trust_store()
+    create_trust_store(ts_password)
 
     # go back to *_cluster
     os.chdir("../")
@@ -139,17 +150,24 @@ if __name__ == '__main__':
             # changing dir to node dir
             os.chdir(node)
             print("\n########################### Create Private Keystore ###########################\n")
-            create_private_key(node, validity)
+            create_private_key(node, domain, kss_password, ksk_password, validity)
             print("\n########################### Export Certificate from Keystore ###########################\n")
-            extract_certificate(node)
+            extract_certificate(kss_password, ksk_password, node)
 
             # go back to *_cluster
             os.chdir("../")
             print("\n########################### Sign the Exported Certificate with CA ###########################\n")
-            sign_with_ca("ca_truststore", node)
+            sign_with_ca(node, ca_password, validity)
             print("\n########################### Re-import all the signed certificates to keystore ###########################\n")
-            import_certificate("ca_truststore", node)
+            import_certificate(node, kss_password, ksk_password)
         except OSError:
             print("Creation of the directory %s failed" % node)
+
+    print("\n\n###################################### Passwords ###################################\n\n")
+    print("CA Password: %s" % ca_password)
+    print("Trust Store Password: %s" % ts_password)
+    print("Keystore-store Password: %s" % kss_password)
+    print("Keystore-key Password: %s" % ksk_password)
+    print("\n####################################################################################\n")
 
 
