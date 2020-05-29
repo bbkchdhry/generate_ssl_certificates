@@ -1,0 +1,23 @@
+#!/bin/bash
+PASSWORD=test1234
+VALIDITY=365
+CN=localhost
+KEYSTORE_ALIAS=localhost
+CA_ALIAS=CARoot
+
+# for server
+
+# generating CA
+openssl req -new -x509 -keyout ca-key -out ca-cert -days $VALIDITY -passout pass:$PASSWORD -subj /CN=$CN
+# generating server keystore
+keytool -genkey -keyalg RSA -keystore kafka.server.keystore.jks -validity $VALIDITY -storepass $PASSWORD -keypass $PASSWORD -alias $KEYSTORE_ALIAS -dname CN=$CN
+# generating server truststore and importing CA certificate in it
+keytool -keystore kafka.server.truststore.jks -storepass $PASSWORD -alias $CA_ALIAS -import -file ca-cert -noprompt
+# exporting server certificate from server keystore
+keytool -keystore kafka.server.keystore.jks -certreq -file cert-file -alias $KEYSTORE_ALIAS -storepass $PASSWORD -keypass $PASSWORD
+# signing server certificate with CA
+openssl x509 -req -CA ca-cert -CAkey ca-key -in cert-file -out cert-signed -days $VALIDITY -CAcreateserial -passin pass:$PASSWORD
+# importing CA certificate in server keystore
+keytool -keystore kafka.server.keystore.jks -alias $CA_ALIAS -import -file ca-cert -storepass $PASSWORD -keypass $PASSWORD -noprompt
+# importing Signed server certificate in server keystore
+keytool -keystore kafka.server.keystore.jks -alias $KEYSTORE_ALIAS -import -file cert-signed -storepass $PASSWORD -keypass $PASSWORD -noprompt
