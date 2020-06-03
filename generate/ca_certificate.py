@@ -103,9 +103,14 @@ def import_certificate(node, store_pass, key_pass):
     run(node_import)
 
 
-def scp_certificates(node):
-    cmd = "scp "
-    pass
+def scp_certificates(user, node, domain, path):
+    try:
+        # scp truststore and keystore
+        scp_truststore = "scp ca/kafka.server.truststore.jks %s/kafka.server.keystore.jks %s@%s.%s:%s" % (node, user, node, domain, path)
+        run(scp_truststore)
+
+    except Exception as e:
+        print(e)
 
 
 if __name__ == '__main__':
@@ -116,17 +121,10 @@ if __name__ == '__main__':
     nodes = nodes.replace(' ', '').split(',')
     domain = input("Enter domain (e.g: ekbana.com): ")
     ca_server = input("Enter CA server (give FQDN of server): ")
+    user = input("Enter common username for all nodes (for scp): ")
+    scp_path = input("Enter path to save certificates (for scp): ")
 
     # Generate Random Password for CA
-
-    # ca_password = "3y-REbMG=VxF9W^C"
-    # # Generate Ramdom Password for TrustStore
-    # ts_password = "8h@R7cMGR^$!4HXM"
-    # # Generate Ramdom Password for Keystore (store)
-    # kss_password = "PXufB3=+7P^Abd@#"
-    # # Generate Ramdom Password for Keystore (key)
-    # ksk_password = "8zJc7*EtT?KEQCJ*"
-
     ca_password = secrets.token_urlsafe(16)
     # Generate Ramdom Password for TrustStore
     ts_password = secrets.token_urlsafe(16)
@@ -177,6 +175,9 @@ if __name__ == '__main__':
             import_certificate(node, kss_password, ksk_password)
         except OSError:
             print("Creation of the directory %s failed" % node)
+
+    print("\n########################### Scp certificates to given location ###########################\n")
+    [scp_certificates(user, node, domain, scp_path) for node in nodes]
 
     print("\n\n###################################### Passwords ###################################\n\n")
     print("CA Password: %s" % ca_password)
