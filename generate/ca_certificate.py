@@ -179,6 +179,10 @@ if __name__ == '__main__':
     print("\n########################### Scp certificates to given location ###########################\n")
     [scp_certificates(user, node, domain, scp_path) for node in nodes]
 
+    print("\n########################### Remove temporary ssl dir ###########################\n")
+    os.chdir("../")
+    os.removedirs("ssl")
+
     print("\n\n###################################### Passwords ###################################\n\n")
     print("CA Password: %s" % ca_password)
     print("Trust Store Password: %s" % ts_password)
