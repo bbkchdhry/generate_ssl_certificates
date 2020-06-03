@@ -1,6 +1,7 @@
 import os
 import subprocess
 import sys
+import secrets
 
 # keytool path
 java_home = os.getenv("JAVA_HOME")
@@ -78,7 +79,7 @@ def sign_with_ca(node, ca_pass, validity):
     :param node:
     :return: runs the command and returns the subprocess output
     """
-    cmd = "openssl x509 -req -CA ca-cert -CAkey ca-key -in %s/cert-file -out %s/cert-signed -days %s -CAcreateserial -passin pass:\"%s\"" \
+    cmd = "openssl x509 -req -CA ca/ca-cert -CAkey ca/ca-key -in %s/cert-file -out %s/cert-signed -days %s -CAcreateserial -passin pass:\"%s\"" \
           % (node, node, validity, ca_pass)
 
     run(cmd)
@@ -102,6 +103,11 @@ def import_certificate(node, store_pass, key_pass):
     run(node_import)
 
 
+def scp_certificates(node):
+    cmd = "scp "
+    pass
+
+
 if __name__ == '__main__':
     validity = 365
 
@@ -112,13 +118,22 @@ if __name__ == '__main__':
     ca_server = input("Enter CA server (give FQDN of server): ")
 
     # Generate Random Password for CA
-    ca_password = "3y-REbMG=VxF9W^C"
+
+    # ca_password = "3y-REbMG=VxF9W^C"
+    # # Generate Ramdom Password for TrustStore
+    # ts_password = "8h@R7cMGR^$!4HXM"
+    # # Generate Ramdom Password for Keystore (store)
+    # kss_password = "PXufB3=+7P^Abd@#"
+    # # Generate Ramdom Password for Keystore (key)
+    # ksk_password = "8zJc7*EtT?KEQCJ*"
+
+    ca_password = secrets.token_urlsafe(16)
     # Generate Ramdom Password for TrustStore
-    ts_password = "8h@R7cMGR^$!4HXM"
+    ts_password = secrets.token_urlsafe(16)
     # Generate Ramdom Password for Keystore (store)
-    kss_password = "PXufB3=+7P^Abd@#"
+    kss_password = secrets.token_urlsafe(16)
     # Generate Ramdom Password for Keystore (key)
-    ksk_password = "8zJc7*EtT?KEQCJ*"
+    ksk_password = secrets.token_urlsafe(16)
 
     ca_truststore_dir = "../" + cluster_name + "/ca"
 
