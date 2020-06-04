@@ -21,6 +21,15 @@ def run(cmd):
         print(e.stdout)
 
 
+def create_trust_store(ts_password, ca_dir):
+    """
+    Add the generated CA to the clients “truststore” so that the clients can trust this CA.
+    :return: runs the command and returns the subprocess output
+    """
+    cmd = keytool + " -keystore kafka.client.truststore.jks -storepass \"%s\" -alias CARoot -import -file %s/ca-cert -noprompt" % (ts_password, ca_dir)
+    run(cmd)
+
+
 def create_private_key(store_pass, key_pass, validity, node, client_domain):
     """
     Generates unique key and the certificate for a machine in the cluster. It stores each machines own identity.
@@ -101,15 +110,20 @@ if __name__ == '__main__':
     ca_dir = input("Enter path of CA ca-cert and ca-key: ")
     ca_pass = input("Enter CA password: ")
 
-    # Generate Ramdom Password for Keystore (store)
+    # Generate Ramdom Password for Client TrustStore
+    ts_pass = secrets.token_urlsafe(16)
+    # Generate Ramdom Password for Client Keystore (store)
     kss_password = secrets.token_urlsafe(16)
-    # Generate Ramdom Password for Keystore (key)
+    # Generate Ramdom Password for Client Keystore (key)
     ksk_password = secrets.token_urlsafe(16)
 
     try:
         os.makedirs("../client_ssl/")
         # changing dir client_ssl
         os.chdir("../client_ssl")
+
+        print("\n########################### Create Trust Store ###########################\n")
+        create_trust_store(ts_pass, ca_dir)
         print("\n########################### Create Private Keystore ###########################\n")
         create_private_key(kss_password, ksk_password, validity, node, client_domain)
         print("\n########################### Export Certificate from Keystore ###########################\n")
@@ -129,6 +143,7 @@ if __name__ == '__main__':
     # os.system("rm -rf ../client_ssl")
 
     print("\n\n###################################### Passwords ###################################\n\n")
+    print("Client Trust Store Password: %s" % ts_pass)
     print("Client Keystore-store Password: %s" % kss_password)
     print("Client Keystore-key Password: %s" % ksk_password)
     print("\n####################################################################################\n")
