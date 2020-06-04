@@ -38,8 +38,6 @@ def create_private_key(store_pass, key_pass, validity, node, client_domain):
     """
     cmd = keytool + " -genkey -keyalg RSA -keystore kafka.client.keystore.jks -storepass \"%s\" -keypass \"%s\" -validity %s -alias %s -dname CN=\"%s\"" \
           % (store_pass, key_pass, validity, node, client_domain)
-
-    print(cmd)
     run(cmd)
 
 
@@ -51,7 +49,6 @@ def extract_certificate(store_pass, key_pass, node):
     :return: runs the command and returns the subprocess output
     """
     cmd = keytool + " -keystore kafka.client.keystore.jks -certreq -file cert-file -storepass \"%s\" -keypass \"%s\" -alias %s " % (store_pass, key_pass, node)
-    print(cmd)
     run(cmd)
 
 
@@ -64,8 +61,6 @@ def sign_with_ca(ca_path, validity, ca_pass):
     """
     cmd = "openssl x509 -req -CA %s/ca-cert -CAkey %s/ca-key -in cert-file -out cert-signed -days %s -CAcreateserial -passin pass:\"%s\"" \
           % (ca_path, ca_path, validity, ca_pass)
-
-    print(cmd)
     run(cmd)
 
 
@@ -78,14 +73,10 @@ def import_certificate(store_pass, node, key_pass, ca_dir):
     """
     ca_import = keytool + " -keystore kafka.client.keystore.jks -storepass \"%s\" -keypass \"%s\" -alias CARoot -import -file %s/ca-cert -noprompt" \
                 % (store_pass, key_pass, ca_dir)
-
-    print(ca_import)
     run(ca_import)
 
     node_import = keytool + " -keystore kafka.client.keystore.jks -storepass \"%s\" -keypass \"%s\" -alias %s -import -file cert-signed -noprompt" \
                   % (store_pass, key_pass, node)
-
-    print(node_import)
     run(node_import)
 
 
@@ -119,7 +110,6 @@ if __name__ == '__main__':
         os.makedirs("../client_ssl/")
         # changing dir client_ssl
         os.chdir("../client_ssl")
-        print(os.getcwd())
         print("\n########################### Create Private Keystore ###########################\n")
         create_private_key(kss_password, ksk_password, validity, node, client_domain)
         print("\n########################### Export Certificate from Keystore ###########################\n")
