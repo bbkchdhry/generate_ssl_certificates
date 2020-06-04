@@ -79,7 +79,7 @@ def sign_with_ca(node, ca_pass, validity):
     :param node:
     :return: runs the command and returns the subprocess output
     """
-    cmd = "openssl x509 -req -CA ca/ca-cert -CAkey ca/ca-key -in %s/cert-file -out %s/cert-signed -days %s -CAcreateserial -passin pass:\"%s\"" \
+    cmd = "openssl x509 -req -CA ca/ca-cert -CAkey ca/ca-key -in %s/cert-file -out %s/cert-signed -days %s -passin pass:\"%s\"" \
           % (node, node, validity, ca_pass)
 
     run(cmd)
@@ -106,7 +106,7 @@ def import_certificate(node, store_pass, key_pass):
 def scp_certificates(user, node, domain, path):
     try:
         # scp truststore and keystore
-        scp_truststore = "rsync ca/kafka.server.truststore.jks %s/kafka.server.keystore.jks %s@%s.%s:%s/ssl" % (node, user, node, domain, path)
+        scp_truststore = "rsync ca/* %s/kafka.server.keystore.jks %s@%s.%s:%s/ssl" % (node, user, node, domain, path)
         run(scp_truststore)
         print("SCP for node: %s\nStatus: OK" % node)
     except Exception as e:
