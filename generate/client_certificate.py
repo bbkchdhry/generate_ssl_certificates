@@ -135,8 +135,8 @@ if __name__ == '__main__':
     print("\n########################### Scp certificates to given location ###########################\n")
     scp_certificates(user, client_domain, scp_path)
 
-    print("\n########################### Removing temporary ssl dir ###########################\n")
-    os.system("rm -rf ../client_ssl")
+    # print("\n########################### Removing temporary ssl dir ###########################\n")
+    # os.system("rm -rf ../client_ssl")
 
     print("\n\n###################################### Passwords ###################################\n\n")
     print("Client Keystore-store Password: %s" % kss_password)

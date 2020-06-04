@@ -179,8 +179,8 @@ if __name__ == '__main__':
     print("\n########################### Scp certificates to given location ###########################\n")
     [scp_certificates(user, node, domain, scp_path) for node in nodes]
 
-    print("\n########################### Removing temporary ssl dir ###########################\n")
-    os.system("rm -rf ../ssl")
+    # print("\n########################### Removing temporary ssl dir ###########################\n")
+    # os.system("rm -rf ../ssl")
 
     print("\n\n###################################### Passwords ###################################\n\n")
     print("CA Password: %s" % ca_password)
