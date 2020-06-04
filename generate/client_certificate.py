@@ -92,7 +92,7 @@ def import_certificate(store_pass, node, key_pass, ca_dir):
 def scp_certificates(user, client_domain, path):
     try:
         # scp Client certificate
-        scp_client_cert = "rsync kafka.client.keystore.jks %s@%s:%s/ssl" % (user, client_domain, path)
+        scp_client_cert = "rsync kafka.client.keystore.jks kafka.client.truststore.jks %s@%s:%s/ssl" % (user, client_domain, path)
         run(scp_client_cert)
         print("SCP for node: %s\nStatus: OK" % node)
     except Exception as e:
