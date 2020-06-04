@@ -79,7 +79,7 @@ def sign_with_ca(node, ca_pass, validity):
     :param node:
     :return: runs the command and returns the subprocess output
     """
-    cmd = "openssl x509 -req -CA ca/ca-cert -CAkey ca/ca-key -in %s/cert-file -out %s/cert-signed -days %s -passin pass:\"%s\"" \
+    cmd = "openssl x509 -req -CA ca/ca-cert -CAkey ca/ca-key -in %s/cert-file -out %s/cert-signed -days %s -CAcreateserial -passin pass:\"%s\"" \
           % (node, node, validity, ca_pass)
 
     run(cmd)
